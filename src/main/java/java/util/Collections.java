@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  *
@@ -1551,7 +1551,7 @@ public class Collections {
     }
 
 
-    // Synch Wrappers
+    // Synch Wrappers （同步包装器）
 
     /**
      * Returns a synchronized (thread-safe) collection backed by the specified
@@ -1593,19 +1593,20 @@ public class Collections {
     }
 
     /**
+     * 基于互斥对象锁的“同步的集合列表”实现类
      * @serial include
      */
     static class SynchronizedCollection<E> implements Collection<E>, Serializable {
         private static final long serialVersionUID = 3053995032091335093L;
 
-        final Collection<E> c;  // Backing Collection
-        final Object mutex;     // Object on which to synchronize
+        final Collection<E> c;  // Backing Collection （背后的真实集合实例）
+        final Object mutex;     // Object on which to synchronize （互斥对象锁：用于同步的对象）
 
         SynchronizedCollection(Collection<E> c) {
             if (c==null)
                 throw new NullPointerException();
             this.c = c;
-            mutex = this;
+            mutex = this; // 默认使用自身作为互斥锁
         }
         SynchronizedCollection(Collection<E> c, Object mutex) {
             this.c = c;
@@ -1629,7 +1630,7 @@ public class Collections {
         }
 
         public Iterator<E> iterator() {
-            return c.iterator(); // Must be manually synched by user!
+            return c.iterator(); // Must be manually synched by user! （必须由用户手动保证同步！）
         }
 
         public boolean add(E e) {
@@ -1696,6 +1697,7 @@ public class Collections {
     }
 
     /**
+     * 基于互斥对象锁的“同步的集合”实现类
      * @serial include
      */
     static class SynchronizedSet<E>
@@ -1710,6 +1712,11 @@ public class Collections {
             super(s, mutex);
         }
 
+        /*
+         * 为什么“内容等价性”的方法，不在“SynchronizedCollection”中统一实现呢？
+         * 因为Collection的子接口List、Set、Deque都有自己的“内容等价性”实现，
+         * 而Set和Collection接口正好包含相同的方法集，这里会让人有一些疑惑。
+         */
         public boolean equals(Object o) {
             if (this == o)
                 return true;
@@ -1762,15 +1769,15 @@ public class Collections {
     }
 
     /**
+     * 基于互斥对象锁的“同步的有序集合”实现类
      * @serial include
      */
     static class SynchronizedSortedSet<E>
         extends SynchronizedSet<E>
-        implements SortedSet<E>
-    {
+        implements SortedSet<E> {
         private static final long serialVersionUID = 8695801310862127406L;
 
-        private final SortedSet<E> ss;
+        private final SortedSet<E> ss; // 有序集合包含自有的一些特殊方法，必须重新声明
 
         SynchronizedSortedSet(SortedSet<E> s) {
             super(s);
@@ -1781,13 +1788,14 @@ public class Collections {
             ss = s;
         }
 
+        // 有序集合特有的接口
         public Comparator<? super E> comparator() {
             synchronized (mutex) {return ss.comparator();}
         }
 
         public SortedSet<E> subSet(E fromElement, E toElement) {
             synchronized (mutex) {
-                return new SynchronizedSortedSet<>(
+                return new SynchronizedSortedSet<>( // 必须将返回的有序集合包装成同步的有序集合，不然无法保证同步特性
                     ss.subSet(fromElement, toElement), mutex);
             }
         }
@@ -1848,6 +1856,7 @@ public class Collections {
     }
 
     /**
+     * 基于互斥对象锁的“同步的列表”实现类
      * @serial include
      */
     static class SynchronizedList<E>
@@ -1855,7 +1864,7 @@ public class Collections {
         implements List<E> {
         private static final long serialVersionUID = -7754090372962971524L;
 
-        final List<E> list;
+        final List<E> list; // 背后的真实列表实例
 
         SynchronizedList(List<E> list) {
             super(list);
@@ -1866,6 +1875,9 @@ public class Collections {
             this.list = list;
         }
 
+        /**
+         * 由于列表和集合列表接口在“内容等价性”的语义上有所不同，所以列表有自己的实现。
+         */
         public boolean equals(Object o) {
             if (this == o)
                 return true;
@@ -1875,6 +1887,7 @@ public class Collections {
             synchronized (mutex) {return list.hashCode();}
         }
 
+        // 列表特有的接口
         public E get(int index) {
             synchronized (mutex) {return list.get(index);}
         }
@@ -1895,6 +1908,9 @@ public class Collections {
             synchronized (mutex) {return list.lastIndexOf(o);}
         }
 
+        /**
+         * 与集合列表接口的实现不一样
+         */
         public boolean addAll(int index, Collection<? extends E> c) {
             synchronized (mutex) {return list.addAll(index, c);}
         }
@@ -1934,11 +1950,13 @@ public class Collections {
     }
 
     /**
+     * 基于互斥对象锁的“同步的随机访问列表”实现类
      * @serial include
      */
     static class SynchronizedRandomAccessList<E>
         extends SynchronizedList<E>
         implements RandomAccess {
+        private static final long serialVersionUID = 1530674583602358482L;
 
         SynchronizedRandomAccessList(List<E> list) {
             super(list);
@@ -1950,12 +1968,10 @@ public class Collections {
 
         public List<E> subList(int fromIndex, int toIndex) {
             synchronized (mutex) {
-                return new SynchronizedRandomAccessList<>(
+                return new SynchronizedRandomAccessList<>( // 必须将返回的子列表包装成同步的随机访问列表，不然无法保证同步特性
                     list.subList(fromIndex, toIndex), mutex);
             }
         }
-
-        private static final long serialVersionUID = 1530674583602358482L;
 
         /**
          * Allows instances to be deserialized in pre-1.4 JREs (which do
@@ -2000,20 +2016,21 @@ public class Collections {
     }
 
     /**
+     * * 基于互斥对象锁的“同步的映射表”实现类
      * @serial include
      */
     private static class SynchronizedMap<K,V>
         implements Map<K,V>, Serializable {
         private static final long serialVersionUID = 1978198479659022715L;
 
-        private final Map<K,V> m;     // Backing Map
-        final Object      mutex;        // Object on which to synchronize
+        private final Map<K,V> m;     // Backing Map （背后的真实映射表实例）
+        final Object      mutex;        // Object on which to synchronize （互斥对象锁：用于同步的对象）
 
         SynchronizedMap(Map<K,V> m) {
             if (m==null)
                 throw new NullPointerException();
             this.m = m;
-            mutex = this;
+            mutex = this; // 默认使用自身作为互斥锁
         }
 
         SynchronizedMap(Map<K,V> m, Object mutex) {
@@ -2050,6 +2067,7 @@ public class Collections {
             synchronized (mutex) {m.clear();}
         }
 
+        // 同步的状态集
         private transient Set<K> keySet = null;
         private transient Set<Map.Entry<K,V>> entrySet = null;
         private transient Collection<V> values = null;
@@ -2142,15 +2160,15 @@ public class Collections {
 
 
     /**
+     * * * 基于互斥对象锁的“同步的有序映射表”实现类
      * @serial include
      */
     static class SynchronizedSortedMap<K,V>
         extends SynchronizedMap<K,V>
-        implements SortedMap<K,V>
-    {
+        implements SortedMap<K,V> {
         private static final long serialVersionUID = -8798146769416483793L;
 
-        private final SortedMap<K,V> sm;
+        private final SortedMap<K,V> sm; // 背后的真实有序映射表
 
         SynchronizedSortedMap(SortedMap<K,V> m) {
             super(m);
@@ -2161,6 +2179,7 @@ public class Collections {
             sm = m;
         }
 
+        // 有序映射表特有的接口
         public Comparator<? super K> comparator() {
             synchronized (mutex) {return sm.comparator();}
         }
