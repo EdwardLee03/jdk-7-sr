@@ -46,6 +46,10 @@ import java.util.concurrent.atomic.*;
  * However, no actual permit objects are used; the {@code Semaphore} just
  * keeps a count of the number available and acts accordingly.
  *
+ * <p>计数信号量，Semaphore中管理着一组虚拟的许可（permits）。
+ * 如果没有许可，那么{@link #acquire}将阻塞直到有许可（或者直到被中断或者操作超时）。
+ * {@link #release}方法将返回一个许可给信号量。
+ *
  * <p>Semaphores are often used to restrict the number of threads than can
  * access some (physical or logical) resource. For example, here is
  * a class that uses a semaphore to control access to a pool of items:
@@ -288,6 +292,7 @@ public class Semaphore implements java.io.Serializable {
     /**
      * Acquires a permit from this semaphore, blocking until one is
      * available, or the thread is {@linkplain Thread#interrupt interrupted}.
+     * <p>从本计数信号量获取一个许可，如果没有许可，那么{@link #acquire}将阻塞直到有许可（或者直到被中断或者操作超时）。
      *
      * <p>Acquires a permit, if one is available and returns immediately,
      * reducing the number of available permits by one.
@@ -416,6 +421,7 @@ public class Semaphore implements java.io.Serializable {
 
     /**
      * Releases a permit, returning it to the semaphore.
+     * <p>{@link #release}方法将返回一个许可给信号量。</p>
      *
      * <p>Releases a permit, increasing the number of available permits by
      * one.  If any threads are trying to acquire a permit, then one is
