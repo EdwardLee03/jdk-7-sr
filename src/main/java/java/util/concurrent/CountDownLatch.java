@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.*;
 /**
  * A synchronization aid that allows one or more threads to wait until
  * a set of operations being performed in other threads completes.
+ * 闭锁同步工具类（倒计时计数器），它允许一个或多个线程等待在其他线程执行的一组操作的完成。
  *
  * <p>A {@code CountDownLatch} is initialized with a given <em>count</em>.
  * The {@link #await await} methods block until the current count reaches
@@ -160,8 +161,8 @@ import java.util.concurrent.atomic.*;
  */
 public class CountDownLatch {
     /**
-     * Synchronization control For CountDownLatch.
-     * Uses AQS state to represent count.
+     * Synchronization control For CountDownLatch.（用于“倒计时计数器”的同步控制）
+     * Uses AQS state to represent count.（使用AQS状态来表示计数器）
      */
     private static final class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 4982264981922014374L;
@@ -174,24 +175,24 @@ public class CountDownLatch {
             return getState();
         }
 
-        protected int tryAcquireShared(int acquires) {
+        protected int tryAcquireShared(int acquires) { // 尝试获取共享的对象
             return (getState() == 0) ? 1 : -1;
         }
 
-        protected boolean tryReleaseShared(int releases) {
+        protected boolean tryReleaseShared(int releases) { // 试图发布共享的对象
             // Decrement count; signal when transition to zero
             for (;;) {
                 int c = getState();
                 if (c == 0)
                     return false;
                 int nextc = c-1;
-                if (compareAndSetState(c, nextc))
+                if (compareAndSetState(c, nextc)) // 计数器递减
                     return nextc == 0;
             }
         }
     }
 
-    private final Sync sync;
+    private final Sync sync; // 同步控制器
 
     /**
      * Constructs a {@code CountDownLatch} initialized with the given count.
@@ -240,6 +241,7 @@ public class CountDownLatch {
      * Causes the current thread to wait until the latch has counted down to
      * zero, unless the thread is {@linkplain Thread#interrupt interrupted},
      * or the specified waiting time elapses.
+     * await方法等待计数器达到零，这表示所有需要等待的事件都已经发生。
      *
      * <p>If the current count is zero then this method returns immediately
      * with the value {@code true}.
@@ -285,6 +287,7 @@ public class CountDownLatch {
     /**
      * Decrements the count of the latch, releasing all waiting threads if
      * the count reaches zero.
+     * countDown方法递减计数器，表示有一个事件已经发生了。
      *
      * <p>If the current count is greater than zero then it is decremented.
      * If the new count is zero then all waiting threads are re-enabled for
